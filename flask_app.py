@@ -1,6 +1,6 @@
 from flask import Flask, request
 import logging
-import os
+
 import json
 
 app = Flask(__name__)
@@ -52,13 +52,19 @@ def handle_dialog(req, res):
     ]
     answer = req['request']['original_utterance'].lower()
     if any([True if phrase in answer and 'не ' not in phrase else False for phrase in confirm]):
-        res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
+        if not elephant:
+            res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
+        else:
+            res['response']['text'] = 'Кролика можно найти на Яндекс.Маркете!'
         res['response']['end_session'] = True
         elephant, reset = True, True
         return
-
-    res['response']['text'] = \
-        f"Все говорят '{req['request']['original_utterance']}', а ты купи слона!"
+    if not elephant:
+        res['response']['text'] = \
+            f"Все говорят '{req['request']['original_utterance']}', а ты купи слона!"
+    else:
+        res['response']['text'] = \
+            f"Все говорят '{req['request']['original_utterance']}', а ты купи кролика!"
     res['response']['buttons'] = get_suggests(user_id)
 
 
@@ -72,13 +78,17 @@ def get_suggests(user_id):
     session['suggests'] = session['suggests'][1:]
     sessionStorage[user_id] = session
     if len(suggests) < 2:
+        if not elephant:
+            url = "https://market.yandex.ru/search?text=слон"
+        else:
+            url = "https://market.yandex.ru/search?text=кролик"
         suggests.append({
             "title": "Ладно",
-            "url": "https://market.yandex.ru/search?text=слон",
+            "url": url,
             "hide": True
         })
     return suggests
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.environ.get('PORT', 33507))
+    app.run()
