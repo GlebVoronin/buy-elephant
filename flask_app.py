@@ -1,12 +1,22 @@
 from flask import Flask, request
 import logging
-import os
 import json
+import os
+import random
 
 app = Flask(__name__)
-elephant = False
-reset = False
+
 logging.basicConfig(level=logging.INFO)
+
+cities = {
+    'москва': ['1652229/9dc0232e6bf55a09e3f5',
+               '213044/61e11c2579a4b2ca1369'],
+    'нью-йорк': ['1652229/a692038f7149927b9658',
+                 '1652229/9bc4be62e575d010c84e'],
+    'париж': ["1521359/24f5da3c735907bca6ce",
+              '937455/3c24bf2e83fe720bef54']
+}
+
 sessionStorage = {}
 
 
@@ -20,74 +30,60 @@ def main():
             'end_session': False
         }
     }
-    handle_dialog(request.json, response)
-    logging.info(f'Response:  {response!r}')
+    handle_dialog(response, request.json)
+    logging.info(f'Response: {response!r}')
     return json.dumps(response)
 
 
-def handle_dialog(req, res):
-    global elephant, reset
+def handle_dialog(res, req):
     user_id = req['session']['user_id']
-
-    if req['session']['new'] or reset:
-        reset = False
+    if req['session']['new']:
+        res['response']['text'] = 'Привет! Назови свое имя!'
         sessionStorage[user_id] = {
-            'suggests': [
-                "Не хочу.",
-                "Не буду.",
-                "Отстань!",
-            ]
+            'first_name': None
         }
-        if not elephant:
-            res['response']['text'] = 'Привет! Купи слона!'
-        else:
-            res['response']['text'] = 'Привет! Купи кролика!'
-        res['response']['buttons'] = get_suggests(user_id)
         return
-    confirm = [
-        'ладно',
-        'куплю',
-        'покупаю',
-        'хорошо'
-    ]
-    answer = req['request']['original_utterance'].lower()
-    if any([True if phrase in answer and 'не ' not in phrase else False for phrase in confirm]):
-        if not elephant:
-            res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
+
+    if sessionStorage[user_id]['first_name'] is None:
+        first_name = get_first_name(req)
+        if first_name is None:
+            res['response']['text'] = \
+                'Не расслышала имя. Повтори, пожалуйста!'
         else:
-            res['response']['text'] = 'Кролика можно найти на Яндекс.Маркете!'
-        res['response']['end_session'] = True
-        elephant, reset = True, True
-        return
-    if not elephant:
-        res['response']['text'] = \
-            f"Все говорят '{req['request']['original_utterance']}', а ты купи слона!"
+            sessionStorage[user_id]['first_name'] = first_name
+            res['response'][
+                'text'] = 'Приятно познакомиться, ' \
+                          + first_name.title() \
+                          + '. Я - Алиса. Какой город хочешь увидеть?'
+            res['response']['buttons'] = [
+                {
+                    'title': city.title(),
+                    'hide': True
+                } for city in cities
+            ]
     else:
-        res['response']['text'] = \
-            f"Все говорят '{req['request']['original_utterance']}', а ты купи кролика!"
-    res['response']['buttons'] = get_suggests(user_id)
-
-
-def get_suggests(user_id):
-    session = sessionStorage[user_id]
-
-    suggests = [
-        {'title': suggest, 'hide': True}
-        for suggest in session['suggests'][:2]
-    ]
-    session['suggests'] = session['suggests'][1:]
-    sessionStorage[user_id] = session
-    if len(suggests) < 2:
-        if not elephant:
-            url = "https://market.yandex.ru/search?text=слон"
+        city = get_city(req)
+        if city in cities:
+            res['response']['card'] = {}
+            res['response']['card']['type'] = 'BigImage'
+            res['response']['card']['title'] = 'Этот город я знаю.'
+            res['response']['card']['image_id'] = random.choice(cities[city])
+            res['response']['text'] = 'Я угадал!'
         else:
-            url = "https://market.yandex.ru/search?text=кролик"
-        suggests.append({
-            "title": "Ладно",
-            "url": url,
-            "hide": True
-        })
-    return suggests
+            res['response']['text'] = \
+                'Первый раз слышу об этом городе. Попробуй еще разок!'
+
+
+def get_city(req):
+    for entity in req['request']['nlu']['entities']:
+        if entity['type'] == 'YANDEX.GEO':
+            return entity['value'].get('city', None)
+
+
+def get_first_name(req):
+    for entity in req['request']['nlu']['entities']:
+        if entity['type'] == 'YANDEX.FIO':
+            return entity['value'].get('first_name', None)
 
 
 if __name__ == '__main__':
