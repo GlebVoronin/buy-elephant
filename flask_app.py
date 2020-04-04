@@ -1,10 +1,11 @@
 from flask import Flask, request
 import logging
-import os
+
 import json
 
 app = Flask(__name__)
-
+elephant = False
+reset = False
 logging.basicConfig(level=logging.INFO)
 sessionStorage = {}
 
@@ -25,9 +26,11 @@ def main():
 
 
 def handle_dialog(req, res):
+    global elephant, reset
     user_id = req['session']['user_id']
 
-    if req['session']['new']:
+    if req['session']['new'] or reset:
+        reset = False
         sessionStorage[user_id] = {
             'suggests': [
                 "Не хочу.",
@@ -35,18 +38,23 @@ def handle_dialog(req, res):
                 "Отстань!",
             ]
         }
-        res['response']['text'] = 'Привет! Купи слона!'
+        if not elephant:
+            res['response']['text'] = 'Привет! Купи слона!'
+        else:
+            res['response']['text'] = 'Привет! Купи кролика!'
         res['response']['buttons'] = get_suggests(user_id)
         return
-
-    if req['request']['original_utterance'].lower() in [
+    confirm = [
         'ладно',
         'куплю',
         'покупаю',
         'хорошо'
-    ]:
+    ]
+    answer = req['request']['original_utterance'].lower()
+    if any([True if phrase in answer and 'не ' not in phrase else False for phrase in confirm]):
         res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
         res['response']['end_session'] = True
+        elephant, reset = True, True
         return
 
     res['response']['text'] = \
@@ -73,4 +81,4 @@ def get_suggests(user_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.environ.get('PORT', 33507))
+    app.run()
