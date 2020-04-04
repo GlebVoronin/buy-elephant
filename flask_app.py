@@ -1,6 +1,6 @@
 from flask import Flask, request
 import logging
-
+import os
 import json
 
 app = Flask(__name__)
@@ -91,4 +91,4 @@ def get_suggests(user_id):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=os.environ.get('PORT', 33507))
