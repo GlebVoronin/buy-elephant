@@ -37,6 +37,11 @@ def main():
 
 def handle_dialog(res, req):
     user_id = req['session']['user_id']
+    res['response']['buttons'] = [{'title': 'Помощь', 'hide': True}]
+    if 'помощь' in req['request']['original_utterance'].lower():
+        res['response']['text'] = 'Справка: вы можете назвать своё имя и' + \
+                                  ' попытаться угадать названия 3 городов по фото'
+        return
     if req['session']['new']:
         res['response']['text'] = 'Привет! Назови своё имя!'
         sessionStorage[user_id] = {
@@ -44,7 +49,6 @@ def handle_dialog(res, req):
             'game_started': False
         }
         return
-
     if sessionStorage[user_id]['first_name'] is None:
         first_name = get_first_name(req)
         if first_name is None:
@@ -53,7 +57,7 @@ def handle_dialog(res, req):
             sessionStorage[user_id]['first_name'] = first_name
             sessionStorage[user_id]['guessed_cities'] = []
             res['response']['text'] = f'Приятно познакомиться, {first_name.title()}. Я Алиса. Отгадаешь город по фото?'
-            res['response']['buttons'] = [
+            res['response']['buttons'].extend([
                 {
                     'title': 'Да',
                     'hide': True
@@ -62,7 +66,7 @@ def handle_dialog(res, req):
                     'title': 'Нет',
                     'hide': True
                 }
-            ]
+            ])
     else:
         if not sessionStorage[user_id]['game_started']:
             if 'да' in req['request']['nlu']['tokens']:
@@ -78,7 +82,7 @@ def handle_dialog(res, req):
                 res['end_session'] = True
             else:
                 res['response']['text'] = 'Не поняла ответа! Так да или нет?'
-                res['response']['buttons'] = [
+                res['response']['buttons'].extend([
                     {
                         'title': 'Да',
                         'hide': True
@@ -87,7 +91,7 @@ def handle_dialog(res, req):
                         'title': 'Нет',
                         'hide': True
                     }
-                ]
+                ])
         else:
             play_game(res, req)
 
