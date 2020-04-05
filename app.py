@@ -33,7 +33,7 @@ def handle_dialog(res, req):
     # Получаем города из нашего
     cities = get_cities(req)
     if not cities:
-        res['response']['text'] = 'Ты не написал название не одного города!'
+        res['response']['text'] = 'Ты не написал название ни одного города!'
     elif len(cities) == 1:
         res['response']['text'] = 'Этот город в стране - ' + \
                                   get_country(cities[0])
