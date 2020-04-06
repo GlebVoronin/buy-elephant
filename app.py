@@ -89,6 +89,7 @@ def handle_dialog(res, req):
         else:
             play_game(res, req)
 def play_game(res, req):
+    global country_or_city
     user_id = req['session']['user_id']
     attempt = sessionStorage[user_id]['attempt']
     if attempt == 1:
