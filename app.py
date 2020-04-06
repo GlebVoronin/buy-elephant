@@ -101,6 +101,7 @@ def play_game(res, req):
         res['response']['card']['title'] = 'Что это за город?'
         res['response']['card']['image_id'] = cities[city][attempt - 1]
         res['response']['text'] = 'Тогда сыграем!'
+        sessionStorage[user_id]['attempt'] += 1
     else:
         if not city_or_country:
             city = sessionStorage[user_id]['city']
