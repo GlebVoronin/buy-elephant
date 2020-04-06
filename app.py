@@ -4,7 +4,9 @@ import os
 import json
 import random
 app = Flask(__name__)
+city_or_country = False
 logging.basicConfig(level=logging.INFO)
+countries = {'москва': 'Россия', 'нью-йорк': 'США', 'париж': 'Франция'}
 cities = {
     'москва': ['1652229/9dc0232e6bf55a09e3f5',
                '213044/61e11c2579a4b2ca1369'],
@@ -100,19 +102,43 @@ def play_game(res, req):
         res['response']['card']['image_id'] = cities[city][attempt - 1]
         res['response']['text'] = 'Тогда сыграем!'
     else:
-        city = sessionStorage[user_id]['city']
-        if get_city(req) == city:
-            res['response']['text'] = 'Правильно! Сыграем ещё?'
-            res['response']['buttons'] = [{'hide': True, 'title': 'Да'},
-                                          {'hide': True, 'title': 'Нет'},
-                                          {'hide': True,
-                                           'title': 'Покажи город на карте',
-                                           'url': f'https://yandex.ru/maps/?mode=search&text={city}'}]
-            sessionStorage[user_id]['guessed_cities'].append(city)
-            sessionStorage[user_id]['game_started'] = False
-            return
+        if not city_or_country:
+            city = sessionStorage[user_id]['city']
+            if get_city(req) == city:
+                country_or_city = True
+                res['response']['text'] = 'Правильно! А в какой стране этот город?'
+                sessionStorage[user_id]['guessed_cities'].append(city)
+                return
+            else:
+                if attempt == 3:
+                    res['response']['buttons'] = [{'hide': True, 'title': 'Да'},
+                                              {'hide': True, 'title': 'Нет'},
+                                              {'hide': True,
+                                               'title': 'Покажи город на карте',
+                                                   'url': f'https://yandex.ru/maps/?mode=search&text={city}'}]
+                    res['response']['text'] = f'Вы пытались. Это {city.title()}. Сыграем ещё?'
+                    sessionStorage[user_id]['guessed_cities'].append(city)
+                    return
+                else:
+                    res['response']['card'] = {}
+                    res['response']['card']['type'] = 'BigImage'
+                    res['response']['card']['title'] = 'Неправильно. Вот тебе дополнительное фото'
+                    res['response']['card']['image_id'] = cities[city][attempt - 1]
+                    res['response']['text'] = 'А вот и не угадал!'
+            sessionStorage[user_id]['attempt'] += 1
         else:
-            if attempt == 3:
+            country_or_city = False
+            country = countries[sessionStorage[user_id]['city']]
+            if get_country(req) == country:
+                res['response']['text'] = 'Правильно! Сыграем ещё?'
+                res['response']['buttons'] = [{'hide': True, 'title': 'Да'},
+                                              {'hide': True, 'title': 'Нет'},
+                                              {'hide': True,
+                                               'title': 'Покажи город на карте',
+                                               'url': f'https://yandex.ru/maps/?mode=search&text={city}'}]
+                sessionStorage[user_id]['game_started'] = False
+                return
+            else:
                 res['response']['buttons'] = [{'hide': True, 'title': 'Да'},
                                               {'hide': True, 'title': 'Нет'},
                                               {'hide': True,
@@ -120,15 +146,11 @@ def play_game(res, req):
                                                'url': f'https://yandex.ru/maps/?mode=search&text={city}'}]
                 res['response']['text'] = f'Вы пытались. Это {city.title()}. Сыграем ещё?'
                 sessionStorage[user_id]['game_started'] = False
-                sessionStorage[user_id]['guessed_cities'].append(city)
                 return
-            else:
-                res['response']['card'] = {}
-                res['response']['card']['type'] = 'BigImage'
-                res['response']['card']['title'] = 'Неправильно. Вот тебе дополнительное фото'
-                res['response']['card']['image_id'] = cities[city][attempt - 1]
-                res['response']['text'] = 'А вот и не угадал!'
-    sessionStorage[user_id]['attempt'] += 1
+def get_country(req):
+    for entity in req['request']['nlu']['entities']:
+        if entity['type'] == 'YANDEX.GEO':
+            return entity['value'].get('country', None)
 def get_city(req):
     for entity in req['request']['nlu']['entities']:
         if entity['type'] == 'YANDEX.GEO':
