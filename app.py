@@ -4,7 +4,7 @@ import os
 import json
 import random
 app = Flask(__name__)
-city_or_country = False
+country_or_city = False
 logging.basicConfig(level=logging.INFO)
 countries = {'москва': 'Россия', 'нью-йорк': 'США', 'париж': 'Франция'}
 cities = {
@@ -104,7 +104,7 @@ def play_game(res, req):
         res['response']['text'] = 'Тогда сыграем!'
         sessionStorage[user_id]['attempt'] += 1
     else:
-        if not city_or_country:
+        if not country_or_city:
             city = sessionStorage[user_id]['city']
             if get_city(req) == city:
                 country_or_city = True
