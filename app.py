@@ -130,8 +130,11 @@ def play_game(res, req):
             sessionStorage[user_id]['attempt'] += 1
         else:
             country_or_city = False
-            country = countries[sessionStorage[user_id]['city']]
-            if get_country(req) == country:
+            country = countries.get(sessionStorage[user_id]['city'], -1)
+            if country == -1:
+                res['response']['text'] = 'Не расслышала имя. Повтори, пожалуйста!'
+                return
+            if get_country(req).lower() == country.lower():
                 res['response']['text'] = 'Правильно! Сыграем ещё?'
                 res['response']['buttons'] = [{'hide': True, 'title': 'Да'},
                                               {'hide': True, 'title': 'Нет'},
@@ -146,7 +149,7 @@ def play_game(res, req):
                                               {'hide': True,
                                                'title': 'Покажи город на карте',
                                                'url': f'https://yandex.ru/maps/?mode=search&text={city}'}]
-                res['response']['text'] = f'Вы пытались. Это {city.title()}. Сыграем ещё?'
+                res['response']['text'] = f'Вы пытались. Это {country.title()}. Сыграем ещё?'
                 sessionStorage[user_id]['game_started'] = False
                 return
 def get_country(req):
