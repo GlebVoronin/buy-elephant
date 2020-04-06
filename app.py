@@ -53,7 +53,7 @@ def handle_dialog(res, req):
         if first_name is None:
             res['response']['text'] = 'Не расслышала имя. Повтори, пожалуйста!'
         else:
-            sessionStorage[user_id]['first_name'] = first_name
+            sessionStorage[user_id]['first_name'] = first_name.title()
             sessionStorage[user_id]['guessed_cities'] = []
             res['response'][
                 'text'] = f'Приятно познакомиться, {first_name.title()}. Я Алиса. Отгадаешь город по фото?'
@@ -107,7 +107,7 @@ def play_game(res, req):
         sessionStorage[user_id]['city'] = city
         res['response']['card'] = {}
         res['response']['card']['type'] = 'BigImage'
-        res['response']['card']['title'] = f'{sessionStorage[user_id]["first_name"]}что это за город?'
+        res['response']['card']['title'] = f'{sessionStorage[user_id]["first_name"]}, что это за город?'
         res['response']['card']['image_id'] = cities[city][attempt - 1]
         res['response']['text'] = 'Тогда сыграем!'
         sessionStorage[user_id]['attempt'] += 1
